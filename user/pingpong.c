@@ -18,20 +18,27 @@ int main()
     }
     if(fork()==0)
     {
-    
+        close(p1[1]);
+        close(p2[0]);
         char c;
-        read(p1[1],&c,1);
+        read(p1[0],&c,1);
         fprintf(2,"%d: received ping\n",getpid());
-        write(p2[0],&c,1);
+        write(p2[1],&c,1);
+        close(p1[0]);
+        close(p2[1]);
         exit(0);
         
     }
     else{
         char d='a';
-        write(p1[0],&d,1);
-        read(p2[1],&d,1);
+        close(p1[0]);
+        close(p2[1]);
+        write(p1[1],&d,1);
+        read(p2[0],&d,1);
         
         fprintf(2,"%d: received pong\n",getpid());
+        close(p1[1]);
+        close(p2[0]);
         exit(0);
     }   
     
