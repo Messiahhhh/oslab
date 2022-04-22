@@ -234,7 +234,7 @@ userinit(void)
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
-
+  p->mask=0;
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
@@ -288,7 +288,6 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
-
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -315,6 +314,7 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  np->mask = p->mask;
   return pid;
 }
 
@@ -653,4 +653,18 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int free_proc()
+{
+    struct proc *p;
+    int cnt=0;
+    for(p = proc; p < &proc[NPROC]; p++) {
+      if(p->state == UNUSED) {
+      }
+      else{
+        cnt++;
+      }
+  }
+  return cnt;
 }
