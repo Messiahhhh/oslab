@@ -32,7 +32,7 @@ ugetpid_test()
 
   printf("ugetpid_test starting\n");
   testname = "ugetpid_test";
-
+  
   for (i = 0; i < 64; i++) {
     int ret = fork();
     if (ret != 0) {
@@ -57,12 +57,12 @@ pgaccess_test()
   testname = "pgaccess_test";
   buf = malloc(32 * PGSIZE);
   if (pgaccess(buf, 32, &abits) < 0)
-    err("pgaccess failed");
+    err("access failed");
   buf[PGSIZE * 1] += 1;
   buf[PGSIZE * 2] += 1;
   buf[PGSIZE * 30] += 1;
   if (pgaccess(buf, 32, &abits) < 0)
-    err("pgaccess failed");
+    err("pgs failed");
   if (abits != ((1 << 1) | (1 << 2) | (1 << 30)))
     err("incorrect access bits set");
   free(buf);
