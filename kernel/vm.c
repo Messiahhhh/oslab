@@ -312,6 +312,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+    *pte |= PTE_A;
     if((mem = kalloc()) == 0)
       goto err;
     memmove(mem, (char*)pa, PGSIZE);
@@ -347,7 +348,29 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-
+  
+  while(len > 0){
+    va0 = PGROUNDDOWN(dstva);
+    pte_t *pte = walk(pagetable,va0,0);
+    *pte|=PTE_A;
+    pa0 = walkaddr(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (dstva - va0);
+    if(n > len)
+      n = len;
+    memmove((void *)(pa0 + (dstva - va0)), src, n);
+    len -= n;
+    src += n;
+    dstva = va0 + PGSIZE;
+  }
+  return 0;
+}
+int
+pgac_copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
+{
+  uint64 n, va0, pa0;
+  
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
@@ -357,14 +380,12 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     if(n > len)
       n = len;
     memmove((void *)(pa0 + (dstva - va0)), src, n);
-
     len -= n;
     src += n;
     dstva = va0 + PGSIZE;
   }
   return 0;
 }
-
 // Copy from user to kernel.
 // Copy len bytes to dst from virtual address srcva in a given page table.
 // Return 0 on success, -1 on error.
@@ -375,6 +396,8 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(srcva);
+    pte_t *pte = walk(pagetable,va0,0);
+    *pte|=PTE_A;
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
@@ -402,6 +425,8 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
   while(got_null == 0 && max > 0){
     va0 = PGROUNDDOWN(srcva);
+    pte_t *pte = walk(pagetable,va0,0);
+    *pte|=PTE_A;
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
@@ -431,4 +456,49 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+void dfs(pagetable_t pagetable,int depth)
+{
+    for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE2PA(pte);
+      if(depth==1)
+      {
+        printf("..%d: pte %p pa %p\n",i,pte,child);
+      }
+      else if(depth==2)
+      {
+        printf(".. ..%d: pte %p pa %p\n",i,pte,child);
+      }
+      else if(depth==3)
+      {
+        printf(".. .. ..%d: pte %p pa %p\n",i,pte,child);
+      }
+      dfs((pagetable_t)child,depth+1);
+    }
+    else if((pte & PTE_V)==1)
+    {
+      uint64 child = PTE2PA(pte);
+      if(depth==1)
+      {
+        printf("..%d: pte %p pa %p\n",i,pte,child);
+      }
+      else if(depth==2)
+      {
+        printf(".. ..%d: pte %p pa %p\n",i,pte,child);
+      }
+      else if(depth==3)
+      {
+        printf(".. .. ..%d: pte %p pa %p\n",i,pte,child);
+      }
+    }
+
+  }
+}
+void vmprint(pagetable_t pagetable)
+{
+    printf("page table %p\n",pagetable);
+    dfs(pagetable,1);
 }
