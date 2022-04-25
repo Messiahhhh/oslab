@@ -351,7 +351,14 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+    if(va0>MAXVA)return -1;
     pte_t *pte = walk(pagetable,va0,0);
+    if(pte == 0)
+      return -1;
+    if((*pte & PTE_V) == 0)
+      return -1;
+    if((*pte & PTE_U) == 0)
+      return -1;
     *pte|=PTE_A;
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
@@ -396,7 +403,15 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(srcva);
+    if(va0>MAXVA)return -1;
     pte_t *pte = walk(pagetable,va0,0);
+    // printf("fuckoffshit\n");
+    if(pte == 0)
+      return -1;
+    if((*pte & PTE_V) == 0)
+      return -1;
+    if((*pte & PTE_U) == 0)
+      return -1;
     *pte|=PTE_A;
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
@@ -425,7 +440,15 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
   while(got_null == 0 && max > 0){
     va0 = PGROUNDDOWN(srcva);
+    if(va0>MAXVA)return -1;
     pte_t *pte = walk(pagetable,va0,0);
+    // printf("fuckoffshit\n");
+    if(pte == 0)
+      return -1;
+    if((*pte & PTE_V) == 0)
+      return -1;
+    if((*pte & PTE_U) == 0)
+      return -1;
     *pte|=PTE_A;
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
