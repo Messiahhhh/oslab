@@ -1,0 +1,6 @@
+a0-a7,a2
+no its inline
+630
+He110 World, 0x726c6400, no change for 57616.
+0x38
+put a2

@@ -78,8 +78,21 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
+  {
+    if(p->ticks!=-1)
+    {
+      printf("fuck\n");
+      p->lticks--;
+      if(p->lticks==0)
+      {
+        void (*funcp)();
+        funcp = (void (*)())p->handler;
+        funcp();
+        p->lticks = p->ticks;
+      }
+    }
     yield();
-
+  }
   usertrapret();
 }
 
