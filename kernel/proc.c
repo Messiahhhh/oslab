@@ -122,6 +122,7 @@ found:
   p->ticks = -1;
   p->handler = 0;
   p->lticks = -1;
+  p->pepc = -1;
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);

@@ -104,11 +104,18 @@ sys_sigalarm(void)
   uint64 hand;
   if(argint(0,&ticks)<0)return -1;
   if(argaddr(1,&hand)<0)return -1;
-  if(ticks==0&&hand==0)return 0;
   struct proc* p = myproc();
+  if(ticks==0&&hand==0){
+    p->ticks=-1;
+    p->lticks=-1;
+    p->handler=0;
+    return 0;
+  }
   p->ticks = ticks;
   p->handler = hand;
   p->lticks = ticks;
+
+  
   return 0;
 }
 uint64 
