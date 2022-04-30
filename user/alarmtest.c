@@ -21,9 +21,9 @@ void slow_handler();
 int
 main(int argc, char *argv[])
 {
-  // test0();
+  test0();
   test1();
-  // test2();
+  test2();
   exit(0);
 }
 
@@ -49,8 +49,9 @@ test0()
   for(i = 0; i < 1000*500000; i++){
     if((i % 1000000) == 0)
       write(2, ".", 1);
-    if(count > 0)
+    if(count > 0){
       break;
+    }
   }
   sigalarm(0, 0);
   if(count > 0){
@@ -87,7 +88,6 @@ test1()
   sigalarm(2, periodic);
   for(i = 0; i < 500000000; i++){
     if(count >= 10){
-      printf("%d\n",count);
       break;
     }
 
@@ -103,7 +103,6 @@ test1()
     // occurred; another is that that registers may not be
     // restored correctly, causing i or j or the address ofj
     // to get an incorrect value.
-    printf("%d %d",i,j);
     printf("\ntest1 failed: foo() executed fewer times than it was called\n");
     
   } else {
