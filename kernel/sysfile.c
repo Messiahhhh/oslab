@@ -450,7 +450,7 @@ sys_exec(void)
 
  bad:
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
-    trap_frame_free(argv[i]);
+    trapframe_free(argv[i]);
   return -1;
 }
 
