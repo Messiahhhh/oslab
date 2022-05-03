@@ -8,6 +8,11 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pgindex{
+    int ind[33000];
+    int MAXX;
+    int MINN;
+};
 
 // bio.c
 void            binit(void);
@@ -63,7 +68,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
-
+extern struct pgindex pgcount;
 // log.c
 void            initlog(int, struct superblock*);
 void            log_write(struct buf*);
@@ -170,6 +175,9 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+int             changeperm(pagetable_t pagetable,uint64 va);
+pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
+void            trapframe_free(void *pa);
 
 // plic.c
 void            plicinit(void);

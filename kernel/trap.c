@@ -67,7 +67,38 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  } else if(r_scause()==15){
+    uint64 pgfva = r_stval();
+    // printf("kankanpi%p\n",pgfva);
+    // printf("kankanpi%p\n",PGROUNDDOWN(pgfva));
+    if(pgfva >= MAXVA)
+      exit(-1);
+    pte_t *pte;
+    pte = walk(p->pagetable, pgfva, 0);
+    uint64 pgfpa = PTE2PA(*pte);
+    if(((*pte)&PTE_COW)==PTE_COW&&((*pte)&(PTE_W))==0)
+    {
+      char* newpa = kalloc();
+
+      if(newpa==0)p->killed=1;
+      else{
+      memset(newpa, 0, PGSIZE);
+      memmove(newpa,(char*)pgfpa,PGSIZE);
+      uint flags = PTE_FLAGS(*pte);
+      uvmunmap(p->pagetable,PGROUNDDOWN(pgfva),1,1);
+      
+      // printf("%p\n",(uint64)newpa);
+      
+      mappages(p->pagetable,(uint64)(PGROUNDDOWN(pgfva)),PGSIZE,(uint64)newpa,flags|PTE_W);
+      }
+    }
+    
+  }
+   else {
+    // uint64 pgfva = r_stval();
+    // printf("kankanpi%p\n",pgfva);
+    // printf("kankanpi%p\n",PGROUNDDOWN(pgfva));
+
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
