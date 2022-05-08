@@ -30,7 +30,23 @@ barrier()
   // Block until all threads have called barrier() and
   // then increment bstate.round.
   //
-  
+  // printf("inshit\n");
+  pthread_mutex_lock(&bstate.barrier_mutex);
+  // printf("kkkp\n");
+  bstate.nthread++;
+  // printf("%dfuck\n",bstate.nthread);
+  if(bstate.nthread!=nthread){
+    pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex); 
+  }
+  else{
+  bstate.round++;
+  pthread_cond_broadcast(&bstate.barrier_cond);
+  bstate.nthread=0;
+  // printf("cock\n");
+
+  // printf("shit\n");
+  }
+  pthread_mutex_unlock(&bstate.barrier_mutex); 
 }
 
 static void *
@@ -43,6 +59,7 @@ thread(void *xa)
   for (i = 0; i < 20000; i++) {
     int t = bstate.round;
     assert (i == t);
+    // printf("%ddfuckshit\n",i);
     barrier();
     usleep(random() % 100);
   }
