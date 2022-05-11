@@ -34,7 +34,9 @@ ping(uint16 sport, uint16 dport, int attempts)
   }
 
   char ibuf[128];
+  // printf("holoy\n");
   int cc = read(fd, ibuf, sizeof(ibuf)-1);
+  // printf("half shit\n");
   if(cc < 0){
     fprintf(2, "ping: recv() failed\n");
     exit(1);

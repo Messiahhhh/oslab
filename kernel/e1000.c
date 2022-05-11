@@ -20,7 +20,7 @@ static struct mbuf *rx_mbufs[RX_RING_SIZE];
 static volatile uint32 *regs;
 
 struct spinlock e1000_lock;
-
+struct spinlock e1000_r_lock;
 // called by pci_init().
 // xregs is the memory address at which the
 // e1000's registers are mapped.
@@ -30,6 +30,7 @@ e1000_init(uint32 *xregs)
   int i;
 
   initlock(&e1000_lock, "e1000");
+  initlock(&e1000_r_lock, "e1000r");
 
   regs = xregs;
 
@@ -102,19 +103,75 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   //
-  
+  acquire(&e1000_lock);
+  // printf("fuck1\n");
+  struct tx_desc* tail = tx_ring+regs[E1000_TDT];
+  // printf("%x\n",tail->status);
+  if((tail->status&1)!=E1000_TXD_STAT_DD){
+    release(&e1000_lock);
+    return -1;
+  }
+  // printf("%d\n",regs[E1000_TDT]);
+  // printf("%x\n",tail->addr);
+  //  printf("%x\n",tx_mbufs[regs[E1000_TDT]]);
+  // printf("fuck2\n");
+  if(tx_mbufs[regs[E1000_TDT]])
+    mbuffree(tx_mbufs[regs[E1000_TDT]]);
+  // printf("fuck3\n");
+  tail->addr = (uint64)m->head;
+  tail->length = m->len;
+  tail->cmd = tail->cmd | E1000_TXD_CMD_RS|E1000_TXD_CMD_EOP; 
+  tx_mbufs[regs[E1000_TDT]] = m;
+  // printf("shit\n");
+  regs[E1000_TDT]=(regs[E1000_TDT]+1)%TX_RING_SIZE;
+  // printf("fuck4\n");
+  release(&e1000_lock);
   return 0;
 }
 
 static void
 e1000_recv(void)
 {
-  //
-  // Your code here.
-  //
-  // Check for packets that have arrived from the e1000
-  // Create and deliver an mbuf for each packet (using net_rx()).
-  //
+  // printf("1\n");
+  // printf("ing\n");
+  
+  // printf("1\n");
+  uint32 index =(regs[E1000_RDT]+1)%RX_RING_SIZE;
+// printf("2\n");
+  struct rx_desc* tail = rx_ring + index;
+  struct mbuf* buf = rx_mbufs[index];
+  // release(&e1000_lock);
+  while((tail->status&1)==E1000_RXD_STAT_DD)
+  {
+    // printf("fucking\n");
+    // return ;
+    buf->len = tail->length;
+    net_rx(buf);
+    // printf("4\n");
+    struct mbuf* newbuf = mbufalloc(0);
+    tail->addr = (uint64)newbuf->head;
+    tail->status = 0;
+    rx_mbufs[index]=newbuf;
+    index = (index+1)%RX_RING_SIZE;
+    tail = rx_ring+index;
+    buf = rx_mbufs[index];
+  }
+    regs[E1000_RDT] = index-1;
+  
+  // printf("3\n");
+  // acquire(&e1000_lock);
+  // buf->len = tail->length;
+  // net_rx(buf);
+  // printf("4\n");
+  // struct mbuf* newbuf = mbufalloc(0);
+  // tail->addr = (uint64)newbuf->head;
+  // tail->status = 0;
+  // rx_mbufs[index]=newbuf;
+  // regs[E1000_RDT]=index%RX_RING_SIZE;
+
+  // printf("5\n");
+  
+  // printf("fuck\n");
 }
 
 void
