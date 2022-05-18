@@ -63,7 +63,7 @@ bget(uint dev, uint blockno)
   for(i=0;i<NBUF;i++){
     if(bcache[blockno%hashnum].buf[i].dev == dev && bcache[blockno%hashnum].buf[i].blockno == blockno){
       bcache[blockno%hashnum].buf[i].refcnt++;
-      bcache[blockno%hashnum].buf[i].tick = ticks;
+      // bcache[blockno%hashnum].buf[i].tick = ticks;
       release(&bcache[blockno%hashnum].lock);
       acquiresleep(&(bcache[blockno%hashnum].buf[i].lock));
       return &(bcache[blockno%hashnum].buf[i]);
@@ -93,15 +93,7 @@ bget(uint dev, uint blockno)
     acquiresleep(&b->lock);
     return b;
   }
-  /*
-      b->dev = dev;
-      b->blockno = blockno;
-      b->valid = 0;
-      b->refcnt = 1;
-      release(&bcache.lock);
-      acquiresleep(&b->lock);
-      return b;
-  */
+
   
 }
 
