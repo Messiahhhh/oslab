@@ -132,7 +132,7 @@ brelse(struct buf *b)
 
   
   b->refcnt--;
-  if(b->refcnt==0)
+  // if(b->refcnt==0)
   b->tick = ticks;
 }
 
@@ -140,7 +140,7 @@ void
 bpin(struct buf *b) {
   acquire(&(bcache[b->blockno%hashnum].lock));
   b->refcnt++;
-  // b->tick = ticks;
+  b->tick = ticks;
   release(&(bcache[b->blockno%hashnum].lock));
 }
 
@@ -148,7 +148,7 @@ void
 bunpin(struct buf *b) {
   acquire(&(bcache[b->blockno%hashnum].lock));
   b->refcnt--;
-  // b->tick = ticks;
+  b->tick = ticks;
   release(&(bcache[b->blockno%hashnum].lock));
 }
 
