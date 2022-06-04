@@ -214,7 +214,6 @@ sys_unlink(void)
     iunlockput(ip);
     goto bad;
   }
-
   memset(&de, 0, sizeof(de));
   if(writei(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
     panic("unlink: writei");
@@ -222,12 +221,14 @@ sys_unlink(void)
     dp->nlink--;
     iupdate(dp);
   }
+
   iunlockput(dp);
 
   ip->nlink--;
   iupdate(ip);
+  if(ip->type == T_SYMLINK&&ip->ref>2&&ip->nlink==0)
+    ip->ref = 2;
   iunlockput(ip);
-
   end_op();
 
   return 0;
@@ -254,6 +255,12 @@ create(char *path, short type, short major, short minor)
     ilock(ip);
     if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
       return ip;
+    if(type == T_SYMLINK&&ip->type == T_SYMLINK){
+      // printf("shit\n");
+
+      // iput(ip);
+      return ip;
+    }
     iunlockput(ip);
     return 0;
   }
@@ -314,6 +321,33 @@ sys_open(void)
       end_op();
       return -1;
     }
+    if(ip->type == T_SYMLINK)
+    {
+      
+      int depth = 0;
+      if((omode & O_NOFOLLOW )== 0)
+      {
+        iunlock(ip);
+        while(ip->type == T_SYMLINK&&depth<10)
+        {
+          ilock(ip);
+          readi(ip,0,(uint64)path,0,MAXPATH);
+          iunlock(ip);
+          if((ip = namei(path)) == 0){
+            end_op();
+            return -1;
+          }
+          depth++;
+        }
+        if(depth==10&&ip->type==T_SYMLINK)
+        {
+          end_op();
+          return -1;
+        }
+        ilock(ip);
+      }
+      
+    }
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
@@ -322,6 +356,7 @@ sys_open(void)
     return -1;
   }
 
+
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -329,7 +364,7 @@ sys_open(void)
     end_op();
     return -1;
   }
-
+  
   if(ip->type == T_DEVICE){
     f->type = FD_DEVICE;
     f->major = ip->major;
@@ -488,5 +523,25 @@ sys_pipe(void)
 uint64
 sys_symlink(void)
 {
-  return 0;
+  char target[MAXPATH],path[MAXPATH];
+  struct inode* ip;
+  if(argstr(0, target, MAXPATH) < 0 || argstr(1, path,MAXPATH) < 0){
+    return -1;
+  }
+  begin_op();
+  if((ip = create(path,T_SYMLINK,0,0)) ==0)
+  {
+    end_op();
+    return -1;
+  }
+  // printf("%s\n",target);
+  // printf("%s\n",path);
+  // ilock(ip);
+  // iput(ip);
+  iunlock(ip);
+
+  end_op();
+  
+  return  linkfilewrite(ip,(uint64)target,strlen(target))==-1?-1:0; 
+
 }

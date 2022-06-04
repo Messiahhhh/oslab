@@ -47,6 +47,7 @@ holdingsleep(struct sleeplock *lk)
   
   acquire(&lk->lk);
   r = lk->locked && (lk->pid == myproc()->pid);
+  // printf("fuck%d\n",r);
   release(&lk->lk);
   return r;
 }

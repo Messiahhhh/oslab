@@ -376,7 +376,7 @@ iunlockput(struct inode *ip)
 // If there is no such block, bmap allocates one.
 static uint
 bmap(struct inode *ip, uint bn)
-{
+{ 
   uint addr, *a;
   struct buf *bp;
 

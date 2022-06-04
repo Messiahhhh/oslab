@@ -40,7 +40,7 @@ cleanup(void)
   unlink("/testsymlink");
 }
 
-// stat a symbolic link using O_NOFOLLOW
+//stat a symbolic link using O_NOFOLLOW
 static int
 stat_slink(char *pn, struct stat *st)
 {
