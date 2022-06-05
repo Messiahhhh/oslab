@@ -1,0 +1,2 @@
+这次试验主要是在iget是什么时候调用的不太清楚，namei调用iget，但是不调用ilock。create调用iget，也调用ilock。
+所以在create和namei之后必须iput或者iunlockput，否则会出现inode不够用的情况
