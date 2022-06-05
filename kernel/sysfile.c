@@ -327,24 +327,25 @@ sys_open(void)
       int depth = 0;
       if((omode & O_NOFOLLOW )== 0)
       {
-        iunlock(ip);
+        // iunlock(ip);
         while(ip->type == T_SYMLINK&&depth<10)
         {
-          ilock(ip);
+          
           readi(ip,0,(uint64)path,0,MAXPATH);
-          iunlock(ip);
+          iunlockput(ip);
           if((ip = namei(path)) == 0){
             end_op();
             return -1;
           }
+          ilock(ip);
           depth++;
         }
         if(depth==10&&ip->type==T_SYMLINK)
         {
+          iunlockput(ip);
           end_op();
           return -1;
         }
-        ilock(ip);
       }
       
     }
@@ -538,10 +539,16 @@ sys_symlink(void)
   // printf("%s\n",path);
   // ilock(ip);
   // iput(ip);
-  iunlock(ip);
+  if(writei(ip, 0,(uint64)target, 0, strlen(target))!=strlen(target))
+  {
+      iunlockput(ip);
+      end_op();
+      return -1;
+  }
+  iunlockput(ip);
 
   end_op();
   
-  return  linkfilewrite(ip,(uint64)target,strlen(target))==-1?-1:0; 
+  return  0; 
 
 }
