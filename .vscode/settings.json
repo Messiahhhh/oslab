@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "syscall.h": "c",
+        "fs.h": "c",
+        "spinlock.h": "c",
+        "defs.h": "c"
+    }
+}
