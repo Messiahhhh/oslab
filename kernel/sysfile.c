@@ -488,7 +488,22 @@ sys_pipe(void)
 uint64 
 sys_mmap(void)
 {
-  return -1;
+  uint64 vaddr;
+  int length;
+  int prot;
+  int flags;
+  struct file* fd;
+  int off;
+  if(argaddr(0, &vaddr)<0)return -1;
+  if(argint(1, &length)<0)return -1;
+  if(argint(2, &prot)<0)return -1;
+  if(argint(3, &flags)<0)return -1;
+  if(argfd(4, 0, &fd)<0)return -1;
+  if(argint(5, &off)<0)return -1;
+  
+
+
+  return mmap(vaddr,length,prot,flags,fd,off);
 }
 uint64 
 sys_munmap(void)

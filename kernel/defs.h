@@ -33,7 +33,8 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
-
+uint64          mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off);
+pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
 // fs.c
 void            fsinit(int);
 int             dirlink(struct inode*, char*, uint);

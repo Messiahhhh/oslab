@@ -8,6 +8,15 @@ struct file {
   uint off;          // FD_INODE
   short major;       // FD_DEVICE
 };
+struct vma {
+  struct file* f;
+  int off;
+  int prot;
+  int flag;
+  int length;
+  uint64 staddr;
+  int v;
+};
 
 #define major(dev)  ((dev) >> 16 & 0xFFFF)
 #define minor(dev)  ((dev) & 0xFFFF)

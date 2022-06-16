@@ -12,12 +12,13 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-
+struct vma vma[16];
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
   struct file file[NFILE];
 } ftable;
+
 
 void
 fileinit(void)
@@ -179,4 +180,55 @@ filewrite(struct file *f, uint64 addr, int n)
 
   return ret;
 }
+uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
+{
+  uint64 va=0;
+  pte_t* pte;
+  struct proc* p = myproc();
+  int sz = 0;
+  uint64 staddr = 0;
+  int flpg = -1;
+  if(vaddr == 0)
+  {
+      for(;va<MAXVA&&sz<length;va+=PGSIZE)
+      {
+          pte = walk(p->pagetable,va,0);
+          if(pte==0)
+          {
+            if(flpg==-1)
+            {
+                flpg = 1;
+                staddr = va;
+            }
+            sz+=PGSIZE;
+          }
+          else{
+            if(flpg == 1)
+            {
+              flpg = -1;
+              staddr = 0;
+              sz = 0;
+            }
+          }
+      }
+      if(staddr==0&&flpg==-1)return -1;
 
+      int i = 0;
+      for(i = 0;i<16;i++)
+      {
+        if(vma[i].v == 0)
+        {
+            vma[i].f = fd;
+            vma[i].flag = flags;
+            vma[i].prot = prot;
+            vma[i].length = length;
+            vma[i].off = off;
+            vma[i].staddr = staddr;
+            vma[i].v = 1;
+            break;
+        }
+        
+      }
+  }
+  return staddr;
+}
