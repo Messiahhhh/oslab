@@ -1,22 +1,4 @@
-struct file {
-  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
-  int ref; // reference count
-  char readable;
-  char writable;
-  struct pipe *pipe; // FD_PIPE
-  struct inode *ip;  // FD_INODE and FD_DEVICE
-  uint off;          // FD_INODE
-  short major;       // FD_DEVICE
-};
-struct vma {
-  struct file* f;
-  int off;
-  int prot;
-  int flag;
-  int length;
-  uint64 staddr;
-  int v;
-};
+#include "stfile.h"
 
 #define major(dev)  ((dev) >> 16 & 0xFFFF)
 #define minor(dev)  ((dev) & 0xFFFF)

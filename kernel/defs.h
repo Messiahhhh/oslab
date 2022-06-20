@@ -34,6 +34,7 @@ int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 uint64          mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off);
+uint64          munmap(uint64 vaddr,int length);
 pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
 // fs.c
 void            fsinit(int);
@@ -182,6 +183,7 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

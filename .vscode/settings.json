@@ -4,6 +4,9 @@
         "fs.h": "c",
         "spinlock.h": "c",
         "defs.h": "c",
-        "proc.h": "c"
+        "proc.h": "c",
+        "file.h": "c",
+        "vma.h": "c",
+        "stfile.h": "c"
     }
 }

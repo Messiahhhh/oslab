@@ -508,5 +508,9 @@ sys_mmap(void)
 uint64 
 sys_munmap(void)
 {
-  return -1;
+  uint64 vaddr;
+  int length;
+  if(argaddr(0, &vaddr)<0)return -1;
+  if(argint(1,&length)<0)return -1;
+  return munmap(vaddr,length);
 }

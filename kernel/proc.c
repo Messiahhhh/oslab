@@ -5,6 +5,8 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "vma.h"
+#include "stfile.h"
 
 struct cpu cpus[NCPU];
 
@@ -352,7 +354,19 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
-
+  for(int i = 0;i<16;i++)
+  {
+    if(VMA[i].v==1)
+    {
+      uint64 va;
+      pte_t *pte;
+      for(va = VMA[i].staddr;va<VMA[i].staddr+VMA[i].length;va+=PGSIZE)
+      {
+        pte = walk(p->pagetable,va,0);
+        if(*pte&PTE_V)munmap(va,PGSIZE);
+      }
+    }
+  }
   begin_op();
   iput(p->cwd);
   end_op();

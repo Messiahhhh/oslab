@@ -12,7 +12,9 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-struct vma vma[16];
+#include "vma.h"
+
+struct vma VMA[16];
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
@@ -56,6 +58,16 @@ filedup(struct file *f)
   return f;
 }
 
+void filedec(struct file* f)
+{
+  acquire(&ftable.lock);
+  if(f->ref < 1)
+    panic("fileclose");
+  if(--f->ref > 0){
+    release(&ftable.lock);
+    return;
+  }
+}
 // Close file f.  (Decrement ref count, close when reaches 0.)
 void
 fileclose(struct file *f)
@@ -180,6 +192,54 @@ filewrite(struct file *f, uint64 addr, int n)
 
   return ret;
 }
+int
+mmpfilewrite(struct file *f, uint64 addr, int n)
+{
+  int r, ret = 0;
+
+  if(f->writable == 0)
+    return -1;
+
+  if(f->type == FD_PIPE){
+    ret = pipewrite(f->pipe, addr, n);
+  } else if(f->type == FD_DEVICE){
+    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+      return -1;
+    ret = devsw[f->major].write(1, addr, n);
+  } else if(f->type == FD_INODE){
+    // write a few blocks at a time to avoid exceeding
+    // the maximum log transaction size, including
+    // i-node, indirect block, allocation blocks,
+    // and 2 blocks of slop for non-aligned writes.
+    // this really belongs lower down, since writei()
+    // might be writing a device like the console.
+    int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+    int i = 0;
+    while(i < n){
+      int n1 = n - i;
+      if(n1 > max)
+        n1 = max;
+
+      begin_op();
+      ilock(f->ip);
+      if ((r = writei(f->ip, 0, addr + i, f->off, n1)) > 0)
+        f->off += r;
+      iunlock(f->ip);
+      end_op();
+
+      if(r != n1){
+        // error from writei
+        break;
+      }
+      i += r;
+    }
+    ret = (i == n ? n : -1);
+  } else {
+    panic("filewrite");
+  }
+
+  return ret;
+}
 uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
 {
   uint64 va=0;
@@ -212,23 +272,52 @@ uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
           }
       }
       if(staddr==0&&flpg==-1)return -1;
-
+      filedup(fd);
       int i = 0;
       for(i = 0;i<16;i++)
       {
-        if(vma[i].v == 0)
+        if(VMA[i].v == 0)
         {
-            vma[i].f = fd;
-            vma[i].flag = flags;
-            vma[i].prot = prot;
-            vma[i].length = length;
-            vma[i].off = off;
-            vma[i].staddr = staddr;
-            vma[i].v = 1;
+            VMA[i].f = fd;
+            VMA[i].flag = flags;
+            VMA[i].prot = prot;
+            VMA[i].length = length;
+            VMA[i].off = off;
+            VMA[i].staddr = staddr;
+            VMA[i].curstaddr = staddr;
+            VMA[i].curoff = off;
+            VMA[i].curlength = length;
+            VMA[i].v = 1;
             break;
         }
         
       }
   }
   return staddr;
+}
+uint64 munmap(uint64 vaddr,int length)
+{
+  int i=0;
+  for(;i<16;i++)
+  {
+    if(VMA[i].v == 1){
+    if(vaddr>=VMA[i].staddr&&vaddr<VMA[i].staddr+VMA[i].length)
+    {
+        if(VMA[i].flag == 0x01)
+        {
+          mmpfilewrite(VMA[i].f,walkaddr(myproc()->pagetable,vaddr),(uint64)length); 
+        }
+        uvmunmap(myproc()->pagetable,vaddr,length/PGSIZE,1);
+        if(VMA[i].length == length)
+        {
+          VMA[i].v = 0;
+          filedec(VMA[i].f);
+        }
+        
+        return 0;
+    }
+    }
+  }
+  return -1;
+    
 }
