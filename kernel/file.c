@@ -63,10 +63,8 @@ void filedec(struct file* f)
   acquire(&ftable.lock);
   if(f->ref < 1)
     panic("fileclose");
-  if(--f->ref > 0){
-    release(&ftable.lock);
-    return;
-  }
+  --f->ref;
+  release(&ftable.lock);
 }
 // Close file f.  (Decrement ref count, close when reaches 0.)
 void
@@ -196,10 +194,10 @@ int
 mmpfilewrite(struct file *f, uint64 addr, int n)
 {
   int r, ret = 0;
-
+  printf("3\n");
   if(f->writable == 0)
     return -1;
-
+  printf("4\n");
   if(f->type == FD_PIPE){
     ret = pipewrite(f->pipe, addr, n);
   } else if(f->type == FD_DEVICE){
@@ -213,17 +211,30 @@ mmpfilewrite(struct file *f, uint64 addr, int n)
     // and 2 blocks of slop for non-aligned writes.
     // this really belongs lower down, since writei()
     // might be writing a device like the console.
+    printf("5\n");
     int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
     int i = 0;
+    int off = f->off;
     while(i < n){
       int n1 = n - i;
       if(n1 > max)
         n1 = max;
-
+      printf("6\n");
       begin_op();
       ilock(f->ip);
-      if ((r = writei(f->ip, 0, addr + i, f->off, n1)) > 0)
-        f->off += r;
+      printf("7\n");
+      // printf("%dfuck\n",*((char*)(addr+i)));
+      // printf("%ddickoff\n",n1);
+      if ((r = writei(f->ip, 1, addr + i, f->off, n1)) > 0){
+        printf("8\n");
+        printf("%d peacefuck\n",off);
+        printf("%d hdick\n",off);
+        f->off+=r;
+
+      }
+        // f->off += r;
+        
+        printf("%dshit\n",f->off);
       iunlock(f->ip);
       end_op();
 
@@ -248,11 +259,29 @@ uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
   int sz = 0;
   uint64 staddr = 0;
   int flpg = -1;
+  int k;
+  int exi=0;
   if(vaddr == 0)
   {
       for(;va<MAXVA&&sz<length;va+=PGSIZE)
       {
           pte = walk(p->pagetable,va,0);
+          for(k=0;k<16;k++)
+          {
+            exi = 0;
+            if(VMA[k].v==1)
+            {
+              if(VMA[k].staddr<=va&&va<VMA[k].staddr+VMA[k].length)
+              {
+                exi = 1;
+                break;
+              }
+            }
+          }
+          if(exi==1)
+          {
+            continue;
+          }
           if(pte==0)
           {
             if(flpg==-1)
@@ -278,6 +307,52 @@ uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
       {
         if(VMA[i].v == 0)
         {
+            if(fd->readable&&fd->writable)
+            {
+              if((prot&0x1)&&(prot&0x2))
+              {
+
+              }
+              else
+              {
+                
+              }
+            }
+            else if(fd->readable&&!fd->writable)
+            {
+              if(flags == 0x02)
+              {
+                if((prot&0x1))
+                {
+                  
+                }
+                else{
+                  return -1;
+                }
+              }
+              else{
+              if(((prot&0x1)&&!(prot&0x2)))
+              {
+              }
+              else return -1;
+              }
+            }
+            else if(!fd->readable&&fd->writable)
+            {
+              if(!(prot&0x1)&&(prot&0x2))
+              {
+
+              }
+              else return -1;
+            }
+            else 
+            {
+              if(!(prot&0x1)&&!(prot&0x2))
+              {
+
+              }
+              else return -1;
+            }
             VMA[i].f = fd;
             VMA[i].flag = flags;
             VMA[i].prot = prot;
@@ -289,6 +364,7 @@ uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
             VMA[i].curlength = length;
             VMA[i].v = 1;
             break;
+
         }
         
       }
@@ -298,6 +374,7 @@ uint64 mmap(uint64 vaddr,int length,int prot,int flags,struct file* fd,int off)
 uint64 munmap(uint64 vaddr,int length)
 {
   int i=0;
+  printf("%dket\n",length);
   for(;i<16;i++)
   {
     if(VMA[i].v == 1){
@@ -305,7 +382,13 @@ uint64 munmap(uint64 vaddr,int length)
     {
         if(VMA[i].flag == 0x01)
         {
-          mmpfilewrite(VMA[i].f,walkaddr(myproc()->pagetable,vaddr),(uint64)length); 
+          if(walkaddr(myproc()->pagetable,PGROUNDDOWN(vaddr))==0)return 0; 
+          // uint64 pa = walkaddr(myproc()->pagetable,PGROUNDDOWN(vaddr));
+          printf("1\n");
+          // printf("%dgetting\n",*((char*)(pa-4097)));
+          mmpfilewrite(VMA[i].f,vaddr,(uint64)length);
+          printf("2\n");
+          
         }
         uvmunmap(myproc()->pagetable,vaddr,length/PGSIZE,1);
         if(VMA[i].length == length)

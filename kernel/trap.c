@@ -87,7 +87,8 @@ usertrap(void)
                 ilock((VMA[i].f)->ip);
                 readi(VMA[i].f->ip, 0, (uint64)pa, VMA[i].curoff, PGSIZE);
                 
-                
+                // printf("see1%x\n",pgfva);
+                // printf("see2%x\n",pa);
                 if(mappages(myproc()->pagetable,VMA[i].curstaddr,PGSIZE,(uint64)pa,PTE_U|PTE_V|(VMA[i].prot<<1))!=0)
                   panic("map error!");
                 VMA[i].curstaddr+=PGSIZE;
