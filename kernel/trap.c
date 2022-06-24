@@ -73,6 +73,7 @@ usertrap(void)
   { 
     
       int i=0;
+      int flag=0;
       uint64 pgfva = r_stval();
       for(;i<16;i++)
       {
@@ -95,10 +96,16 @@ usertrap(void)
                 iunlock(VMA[i].f->ip);
                 end_op();
               
-                        
+            flag=1;      
             break;
           }
         }
+      }
+      if(!flag)
+      {
+      printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+      p->killed = 1;
       }
   }
    
