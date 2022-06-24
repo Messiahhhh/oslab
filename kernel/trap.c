@@ -77,46 +77,25 @@ usertrap(void)
       for(;i<16;i++)
       {
         if(VMA[i].v == 1){
-          if(pgfva>= VMA[i].curstaddr&&pgfva<VMA[i].curstaddr+VMA[i].curlength)
+          if(pgfva>= VMA[i].staddr&&pgfva<VMA[i].staddr+VMA[i].length)
           {
               char *pa = kalloc();
               memset(pa,0,PGSIZE);
-              if(VMA[i].curlength>=PGSIZE)
-              {
                 begin_op();
                 ilock((VMA[i].f)->ip);
-                readi(VMA[i].f->ip, 0, (uint64)pa, VMA[i].curoff, PGSIZE);
+                readi(VMA[i].f->ip, 0, (uint64)pa, pgfva-VMA[i].staddr, PGSIZE);
                 
                 // printf("see1%x\n",pgfva);
                 // printf("see2%x\n",pa);
-                if(mappages(myproc()->pagetable,VMA[i].curstaddr,PGSIZE,(uint64)pa,PTE_U|PTE_V|(VMA[i].prot<<1))!=0)
+                if(mappages(myproc()->pagetable,PGROUNDDOWN(pgfva),PGSIZE,(uint64)pa,PTE_U|PTE_V|(VMA[i].prot<<1))!=0)
                   panic("map error!");
                 VMA[i].curstaddr+=PGSIZE;
                 VMA[i].curoff+=PGSIZE;
                 VMA[i].curlength-=PGSIZE;
                 iunlock(VMA[i].f->ip);
                 end_op();
-                break;
-              } 
-              else{
-                begin_op();
-                ilock(VMA[i].f->ip);
-                if(readi(VMA[i].f->ip, 0, (uint64)pa, VMA[i].curoff, VMA[i].curlength)!=VMA[i].curlength)
-                {
-                  iunlock(VMA[i].f->ip);
-                  end_op();
-                  exit(-1);
-                }
-                
-                if(mappages(myproc()->pagetable,VMA[i].curstaddr,PGSIZE,(uint64)pa,PTE_U|PTE_V|(VMA[i].prot<<1))!=0)
-                  panic("map error!");
-                VMA[i].curstaddr+=VMA[i].curlength;
-                VMA[i].curoff+=VMA[i].curlength;
-                VMA[i].curlength-=VMA[i].curlength;
-                iunlock(VMA[i].f->ip);
-                end_op();
-                break;
-              }          
+              
+                        
             break;
           }
         }

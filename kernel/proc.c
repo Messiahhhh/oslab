@@ -121,7 +121,10 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
-
+  for(int i=0;i<16;i++){
+    p->vma[i]=0;
+    p->umlen[i]=0;
+  }
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -301,6 +304,15 @@ fork(void)
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
+  for(i = 0;i<16;i++)
+  {
+    if(p->vma[i]!=0)
+    {
+      np->vma[i]=p->vma[i];
+      filedup(VMA[i].f);
+      VMA[i].refcnt++;
+    }
+  }  
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
@@ -354,8 +366,10 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
+  
   for(int i = 0;i<16;i++)
   {
+    // printf("fuckdick%d\n",i);
     if(VMA[i].v==1)
     {
       uint64 va;
@@ -363,10 +377,13 @@ exit(int status)
       for(va = VMA[i].staddr;va<VMA[i].staddr+VMA[i].length;va+=PGSIZE)
       {
         pte = walk(p->pagetable,va,0);
+        if(pte==0)continue;
         if(*pte&PTE_V)munmap(va,PGSIZE);
       }
     }
   }
+
+
   begin_op();
   iput(p->cwd);
   end_op();
@@ -389,6 +406,7 @@ exit(int status)
 
   // Jump into the scheduler, never to return.
   sched();
+  printf("fuckpuss\n");
   panic("zombie exit");
 }
 

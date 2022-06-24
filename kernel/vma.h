@@ -8,8 +8,8 @@ struct vma {
   int curoff;
   int curlength;
   uint64 curstaddr;
-  int dlength;
-  uint64 dstaddr;
+  int refcnt;
+  int unmlength;
   int v;
 };
 
